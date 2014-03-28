@@ -52,18 +52,18 @@ require_once('include/z_RFC822.php');
 
 
 class BackendIMAP extends BackendDiff {
-    protected $wasteID;
-    protected $sentID;
-    protected $server;
-    protected $mbox;
-    protected $mboxFolder;
-    protected $username;
-    protected $domain;
-    protected $serverdelimiter;
+    private $wasteID;
+    private $sentID;
+    private $server;
+    private $mbox;
+    private $mboxFolder;
+    private $username;
+    private $domain;
+    private $serverdelimiter;
     private $sinkfolders = array();
     private $sinkstates = array();
     private $changessinkinit = false;
-    protected $excludedFolders; /* fmbiete's contribution r1527, ZP-319 */
+    private $excludedFolders;
 
     /**----------------------------------------------------------------------------------------------------------
      * default backend methods
