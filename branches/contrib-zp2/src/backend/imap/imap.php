@@ -60,8 +60,9 @@ class BackendIMAP extends BackendDiff {
     protected $username;
     protected $domain;
     protected $serverdelimiter;
-    protected $sinkfolders;
-    protected $sinkstates;
+    private $sinkfolders = array();
+    private $sinkstates = array();
+    private $changessinkinit = false;
     protected $excludedFolders; /* fmbiete's contribution r1527, ZP-319 */
 
     /**----------------------------------------------------------------------------------------------------------
@@ -626,8 +627,6 @@ class BackendIMAP extends BackendDiff {
      * @return boolean
      */
     public function HasChangesSink() {
-        $this->sinkfolders = array();
-        $this->sinkstates = array();
         return true;
     }
 
@@ -642,16 +641,16 @@ class BackendIMAP extends BackendDiff {
      * @return boolean      false if found can not be found
      */
     public function ChangesSinkInitialize($folderid) {
-        ZLog::Write(LOGLEVEL_DEBUG, sprintf("IMAPBackend->ChangesSinkInitialize(): folderid '%s'", $folderid));
+        ZLog::Write(LOGLEVEL_DEBUG, sprintf("BackendIMAP->ChangesSinkInitialize(): folderid '%s'", $folderid));
 
         $imapid = $this->getImapIdFromFolderId($folderid);
 
-        if ($imapid) {
+        if ($imapid !== false) {
             $this->sinkfolders[] = $imapid;
-            return true;
+            $this->changessinkinit = true;
         }
 
-        return false;
+        return $this->changessinkinit;
     }
 
     /**
@@ -669,8 +668,16 @@ class BackendIMAP extends BackendDiff {
         $notifications = array();
         $stopat = time() + $timeout - 1;
 
+        //We can get here and the ChangesSink not be initialized yet
+        if (!$this->changessinkinit) {
+            ZLog::Write(LOGLEVEL_DEBUG, sprintf("BackendIMAP>ChangesSink - Not initialized ChangesSink, sleep and exit"));
+            // We sleep and do nothing else
+            sleep($timeout);
+            return $notifications;
+        }
+
         while($stopat > time() && empty($notifications)) {
-            foreach ($this->sinkfolders as $imapid) {
+            foreach ($this->sinkfolders as $i => $imapid) {
                 $this->imap_reopenFolder($imapid);
 
                 // courier-imap only cleares the status cache after checking
@@ -683,12 +690,14 @@ class BackendIMAP extends BackendDiff {
                 else {
                     $newstate = "M:". $status->messages ."-R:". $status->recent ."-U:". $status->unseen;
 
-                    if (! isset($this->sinkstates[$imapid]) )
+                    if (! isset($this->sinkstates[$imapid]) ) {
                         $this->sinkstates[$imapid] = $newstate;
+                    }
 
                     if ($this->sinkstates[$imapid] != $newstate) {
                         $notifications[] = $this->getFolderIdFromImapId($imapid);
                         $this->sinkstates[$imapid] = $newstate;
+                        ZLog::Write(LOGLEVEL_DEBUG, sprintf("BackendIMAP->ChangesSink(): ChangesSink detected!!"));
                     }
                 }
             }
