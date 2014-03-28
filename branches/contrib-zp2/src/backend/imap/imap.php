@@ -570,6 +570,10 @@ class BackendIMAP extends BackendDiff {
         $this->imap_reopenFolder($folderImapid);
         $mail = @imap_fetchheader($this->mbox, $id, FT_UID) . @imap_body($this->mbox, $id, FT_PEEK | FT_UID);
 
+        if (empty($mail)) {
+            throw new StatusException(sprintf("BackendIMAP->GetAttachmentData('%s'): Error, message not found, maybe was moved", $attname), SYNC_ITEMOPERATIONSSTATUS_INVALIDATT);
+        }
+
         $mobj = new Mail_mimeDecode($mail);
         $message = $mobj->decode(array('decode_headers' => true, 'decode_bodies' => true, 'include_bodies' => true, 'charset' => 'utf-8'));
 
