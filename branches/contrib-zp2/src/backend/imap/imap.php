@@ -1200,13 +1200,13 @@ class BackendIMAP extends BackendDiff {
                 $output->importance = 1;
             }
 
-            // Attachments are not needed for MIME messages
-            if($bpReturnType != SYNC_BODYPREFERENCE_MIME && isset($message->parts)) {
+            // Attachments are also needed for MIME messages
+            if(isset($message->parts)) {
                 $mparts = $message->parts;
                 for ($i=0; $i<count($mparts); $i++) {
                     $part = $mparts[$i];
                     //recursively add parts
-                    if($part->ctype_primary == "multipart" && ($part->ctype_secondary == "mixed" || $part->ctype_secondary == "alternative"  || $part->ctype_secondary == "related")) {
+                    if((isset($part->ctype_primary) && $part->ctype_primary == "multipart") && (isset($part->ctype_secondary) && ($part->ctype_secondary == "mixed" || $part->ctype_secondary == "alternative"  || $part->ctype_secondary == "related"))) {
                         foreach($part->parts as $spart)
                             $mparts[] = $spart;
                         continue;
