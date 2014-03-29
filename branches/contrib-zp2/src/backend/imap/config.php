@@ -63,8 +63,8 @@ define('IMAP_DEFAULTFROM', '');
 // copy outgoing mail to this folder. If not set z-push will try the default folders
 define('IMAP_SENTFOLDER', '');
 
-// forward messages inline (default false - as attachment)
-define('IMAP_INLINE_FORWARD', false);
+// forward messages inline (default true - inlined)
+define('IMAP_INLINE_FORWARD', true);
 
 // list of folders we want to exclude from sync. Names, or part of it, separated by |
 // example: dovecot.sieve|archive|spam
