@@ -1837,6 +1837,10 @@ class BackendIMAP extends BackendDiff {
      * @return string
      */
     protected function cleanupDate($receiveddate) {
+        if (is_array($receiveddate)) {
+            // Header Date could be repeated in the message, we only check the first
+            $receiveddate = $receiveddate[0];
+        }
         $receiveddate = strtotime(preg_replace("/\(.*\)/", "", $receiveddate));
         if ($receiveddate == false || $receiveddate == -1) {
             debugLog("Received date is false. Message might be broken.");
