@@ -1150,25 +1150,38 @@ class BackendIMAP extends BackendDiff {
             $output->cc = array();
             $output->reply_to = array();
             foreach(array("to" => $toaddr, "cc" => $ccaddr, "reply_to" => $replytoaddr) as $type => $addrlist) {
-                foreach($addrlist as $addr) {
-                    $address = $addr->mailbox . "@" . $addr->host;
-                    $name = $addr->personal;
-
-                    if (!isset($output->displayto) && $name != "")
-                        $output->displayto = $name;
-
-                    if($name == "" || $name == $address)
-                        $fulladdr = w2u($address);
+                if ($addrlist === false) {
+                    //If we couldn't parse the addresslist we put the raw header (decoded)
+                    if ($type == "reply_to") {
+                        array_push($output->$type, $message->headers["reply-to"]);
+                    }
                     else {
-                        if (substr($name, 0, 1) != '"' && substr($name, -1) != '"') {
-                            $fulladdr = "\"" . w2u($name) ."\" <" . w2u($address) . ">";
-                        }
-                        else {
-                            $fulladdr = w2u($name) ." <" . w2u($address) . ">";
+                        array_push($output->$type, $message->headers[$type]);
+                    }
+                }
+                else {
+                    foreach($addrlist as $addr) {
+                        if (isset($addr->mailbox) && isset($addr->host) && isset($addr->personal)) {
+                            $address = $addr->mailbox . "@" . $addr->host;
+                            $name = $addr->personal;
+
+                            if (!isset($output->displayto) && $name != "")
+                                $output->displayto = $name;
+
+                            if($name == "" || $name == $address)
+                                $fulladdr = $address;
+                            else {
+                                if (substr($name, 0, 1) != '"' && substr($name, -1) != '"') {
+                                    $fulladdr = "\"" . $name ."\" <" . $address . ">";
+                                }
+                                else {
+                                    $fulladdr = $name ." <" . $address . ">";
+                                }
+                            }
+
+                            array_push($output->$type, $fulladdr);
                         }
                     }
-
-                    array_push($output->$type, $fulladdr);
                 }
             }
 
