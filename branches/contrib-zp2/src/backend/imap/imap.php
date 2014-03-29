@@ -1843,7 +1843,7 @@ class BackendIMAP extends BackendDiff {
         }
         $receiveddate = strtotime(preg_replace("/\(.*\)/", "", $receiveddate));
         if ($receiveddate == false || $receiveddate == -1) {
-            debugLog("Received date is false. Message might be broken.");
+            ZLog::Write(LOGLEVEL_DEBUG, "cleanupDate() : Received date is false. Message might be broken.");
             return null;
         }
 
