@@ -58,6 +58,7 @@ class BackendIMAP extends BackendDiff {
     private $mbox;
     private $mboxFolder;
     private $username;
+    private $password;
     private $domain;
     private $serverdelimiter;
     private $sinkfolders = array();
@@ -103,6 +104,7 @@ class BackendIMAP extends BackendDiff {
         if ($this->mbox) {
             ZLog::Write(LOGLEVEL_DEBUG, sprintf("BackendIMAP->Logon(): User '%s' is authenticated on '%s'", $username, $this->server));
             $this->username = $username;
+            $this->password = $password;
             $this->domain = $domain;
             // set serverdelimiter
             $this->serverdelimiter = $this->getServerDelimiter();
