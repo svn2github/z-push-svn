@@ -1143,8 +1143,8 @@ class BackendIMAP extends BackendDiff {
                 $toaddr = $Mail_RFC822->parseAddressList($message->headers["to"]);
             if(isset($message->headers["cc"]))
                 $ccaddr = $Mail_RFC822->parseAddressList($message->headers["cc"]);
-            if(isset($message->headers["reply_to"]))
-                $replytoaddr = $Mail_RFC822->parseAddressList($message->headers["reply_to"]);
+            if(isset($message->headers["reply-to"]))
+                $replytoaddr = $Mail_RFC822->parseAddressList($message->headers["reply-to"]);
 
             $output->to = array();
             $output->cc = array();
