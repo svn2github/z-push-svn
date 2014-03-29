@@ -545,6 +545,7 @@ class BackendCardDAV extends BackendDiff implements ISearchProvider {
         $message["mod"] = $this->contactsetag[$id];
         $message["id"] = $id;
         $message["flags"] = 1;
+        $message["star"] = 0;
 
         return $message;
     }
@@ -637,6 +638,23 @@ class BackendCardDAV extends BackendDiff implements ISearchProvider {
      * @throws StatusException              could throw specific SYNC_STATUS_* exceptions
      */
     public function SetReadFlag($folderid, $id, $flags, $contentParameters) {
+        return false;
+    }
+
+    /**
+     * Changes the 'star' flag of a message on disk
+     * Not implemented here
+     *
+     * @param string        $folderid       id of the folder
+     * @param string        $id             id of the message
+     * @param int           $flags          star flag of the message
+     * @param ContentParameters   $contentParameters
+     *
+     * @access public
+     * @return boolean                      status of the operation
+     * @throws StatusException              could throw specific SYNC_STATUS_* exceptions
+     */
+    public function SetStarFlag($folderid, $id, $flags, $contentParameters) {
         return false;
     }
 
