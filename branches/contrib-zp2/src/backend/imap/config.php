@@ -66,13 +66,43 @@ define('IMAP_SENTFOLDER', '');
 // forward messages inline (default false - as attachment)
 define('IMAP_INLINE_FORWARD', false);
 
-// use imap_mail() to send emails (default) - if false mail() is used
-define('IMAP_USE_IMAPMAIL', true);
-
-/* BEGIN fmbiete's contribution r1527, ZP-319 */
 // list of folders we want to exclude from sync. Names, or part of it, separated by |
 // example: dovecot.sieve|archive|spam
 define('IMAP_EXCLUDED_FOLDERS', '');
-/* END fmbiete's contribution r1527, ZP-319 */
+
+
+// Method used for sending mail
+// mail => mail() php function
+// sendmail => sendmail executable
+// smtp => direct connection against SMTP
+define('IMAP_SMTP_METHOD', 'mail');
+
+global $imap_smtp_params;
+// SMTP Parameters
+//      mail : no params
+$imap_smtp_params = array();
+//      sendmail
+//$imap_smtp_params = array('sendmail_path' => '/usr/bin/sendmail', 'sendmail_args' => '-i');
+//      smtp
+//          "host"          - The server to connect. Default is localhost.
+//          "port"          - The port to connect. Default is 25.
+//          "auth"          - Whether or not to use SMTP authentication. Default is FALSE.
+//          "username"      - The username to use for SMTP authentication. "imap_username" for using the same username as the imap server
+//          "password"      - The password to use for SMTP authentication. "imap_password" for using the same password as the imap server
+//          "localhost"     - The value to give when sending EHLO or HELO. Default is localhost
+//          "timeout"       - The SMTP connection timeout. Default is NULL (no timeout).
+//          "verp"          - Whether to use VERP or not. Default is FALSE.
+//          "debug"         - Whether to enable SMTP debug mode or not. Default is FALSE.
+//          "persist"       - Indicates whether or not the SMTP connection should persist over multiple calls to the send() method.
+//          "pipelining"    - Indicates whether or not the SMTP commands pipelining should be used.
+//$imap_smtp_params = array('host' => 'localhost', 'port' => 25, 'auth' => false);
+// If you want to use SSL with port 25 or port 465 you must preppend "ssl://" before the hostname or IP of your SMTP server
+// IMPORTANT: To use SSL you must use PHP 5.1 or later, install openssl libs and use ssl:// within the host variable
+//$imap_smtp_params = array('host' => 'ssl://localhost', 'port' => 465, 'auth' => true, 'username' => 'imap_username', 'password' => 'imap_password');
+
+
+// If you are using IMAP_SMTP_METHOD = mail or sendmail and your sent messages are not correctly displayed you can change this to "\n".
+//   BUT, it doesn't with RFC 2822 and will break if using smp method
+define('MAIL_MIMEPART_CRLF', "\r\n");
 
 ?>
