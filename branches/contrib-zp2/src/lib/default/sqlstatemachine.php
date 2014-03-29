@@ -574,6 +574,159 @@ class SqlStateMachine implements IStateMachine {
         return $out;
     }
 
+    /**
+     * Return if the User-Device has permission to sync against this Z-Push.
+     *
+     * @param string $user          Username
+     * @param string $devid         DeviceId
+     *
+     * @access public
+     * @return integer
+     */
+    public function GetUserDevicePermission($user, $devid) {
+        $status = SYNC_COMMONSTATUS_SUCCESS;
+
+        $userExist = false;
+        $userBlocked = false;
+        $deviceExist = false;
+        $deviceBlocked = false;
+
+        // Android PROVISIONING initial step
+        if ($devid != "validate") {
+
+            $sth = null;
+            $record = null;
+            try {
+                $this->dbh = new PDO(STATE_SQL_DSN, STATE_SQL_USER, STATE_SQL_PASSWORD, $this->options);
+
+                $sql = "select authorized from zpush_preauth_users where username = :user and device_id = :devid";
+                $params = array(":user" => $user, ":devid" => "authorized");
+                $paramsNewDevid = array();
+                $paramsNewUser = array();
+
+                $sth = $this->dbh->prepare($sql);
+                $sth->execute($params);
+                if ($record = $sth->fetch(PDO::FETCH_ASSOC)) {
+                    $userExist = true;
+                    $userBlocked = !$record["authorized"];
+                }
+                $record = null;
+                $sth = null;
+
+                if ($userExist) {
+                    // User already pre-authorized
+
+                    // User could be blocked if a "authorized" device exist and it's false
+                    if ($userBlocked) {
+                        $status = SYNC_COMMONSTATUS_USERDISABLEDFORSYNC;
+                        ZLog::Write(LOGLEVEL_INFO, sprintf("SqlStateMachine->GetUserDevicePermission(): Blocked user '%s', tried '%s'", $user, $devid));
+                    }
+                    else {
+                        $params[":devid"] = $devid;
+
+                        $sth = $this->dbh->prepare($sql);
+                        $sth->execute($params);
+                        if ($record = $sth->fetch(PDO::FETCH_ASSOC)) {
+                            $deviceExist = true;
+                            $deviceBlocked = !$record["authorized"];
+                        }
+                        $record = null;
+                        $sth = null;
+
+                        if ($deviceExist) {
+                            // Device pre-authorized found
+
+                            if ($deviceBlocked) {
+                                $status = SYNC_COMMONSTATUS_DEVICEBLOCKEDFORUSER;
+                                ZLog::Write(LOGLEVEL_INFO, sprintf("SqlStateMachine->GetUserDevicePermission(): Blocked device '%s' for user '%s'", $devid, $user));
+                            }
+                            else {
+                                ZLog::Write(LOGLEVEL_INFO, sprintf("SqlStateMachine->GetUserDevicePermission(): Pre-authorized device '%s' for user '%s'", $devid, $user));
+                            }
+                        }
+                        else {
+                            // Device not pre-authorized
+
+                            if (defined('PRE_AUTHORIZE_NEW_DEVICES') && PRE_AUTHORIZE_NEW_DEVICES === true) {
+                                if (defined('PRE_AUTHORIZE_MAX_DEVICES') && PRE_AUTHORIZE_MAX_DEVICES >= count($userList[$user])) {
+                                    $paramsNewDevid[":auth"] = true;
+                                    ZLog::Write(LOGLEVEL_INFO, sprintf("SqlStateMachine->GetUserDevicePermission(): Pre-authorized new device '%s' for user '%s'", $devid, $user));
+                                }
+                                else {
+                                    $status = SYNC_COMMONSTATUS_MAXDEVICESREACHED;
+                                    ZLog::Write(LOGLEVEL_INFO, sprintf("SqlStateMachine->GetUserDevicePermission(): Max number of devices reached for user '%s', tried '%s'", $user, $devid));
+                                }
+                            }
+                            else {
+                                $status = SYNC_COMMONSTATUS_DEVICEBLOCKEDFORUSER;
+                                $paramsNewDevid[":auth"] = false;
+                                ZLog::Write(LOGLEVEL_INFO, sprintf("SqlStateMachine->GetUserDevicePermission(): Blocked new device '%s' for user '%s'", $devid, $user));
+                            }
+                        }
+                    }
+                }
+                else {
+                    // User not pre-authorized
+
+                    if (defined('PRE_AUTHORIZE_NEW_USERS') && PRE_AUTHORIZE_NEW_USERS === true) {
+                        $paramsNewUser[":auth"] = true;
+                        if (defined('PRE_AUTHORIZE_NEW_DEVICES') && PRE_AUTHORIZE_NEW_DEVICES === true) {
+                            if (defined('PRE_AUTHORIZE_MAX_DEVICES') && PRE_AUTHORIZE_MAX_DEVICES >= count($userList[$user])) {
+                                $paramsNewDevid[":auth"] = true;
+                                ZLog::Write(LOGLEVEL_INFO, sprintf("SqlStateMachine->GetUserDevicePermission(): Pre-authorized new device '%s' for new user '%s'", $devid, $user));
+                            }
+                        }
+                        else {
+                            $status = SYNC_COMMONSTATUS_DEVICEBLOCKEDFORUSER;
+                            $paramsNewDevid[":auth"] = false;
+                            ZLog::Write(LOGLEVEL_INFO, sprintf("SqlStateMachine->GetUserDevicePermission(): Blocked new device '%s' for new user '%s'", $devid, $user));
+                        }
+                    }
+                    else {
+                        $status = SYNC_COMMONSTATUS_USERDISABLEDFORSYNC;
+                        $paramsNewUser[":auth"] = false;
+                        $paramsNewDevid[":auth"] = false;
+                        ZLog::Write(LOGLEVEL_INFO, sprintf("SqlStateMachine->GetUserDevicePermission(): Blocked new user '%s' and device '%s'", $user, $devid));
+                    }
+                }
+
+                if (count($paramsNewUser) > 0) {
+                    $sql = "insert into zpush_preauth_users (username, device_id, authorized, created_at, updated_at) values (:user, :devid, :auth, :created_at, :updated_at)";
+                    $paramsNewUser[":user"] = $user;
+                    $paramsNewUser[":devid"] = "authorized";
+                    $paramsNewUser[":created_at"] = $paramsNewUser[":updated_at"] = $this->getNow();
+
+                    $sth = $this->dbh->prepare($sql);
+                    if (!$sth->execute($paramsNewUser)) {
+                        ZLog::Write(LOGLEVEL_ERROR, sprintf("SqlStateMachine->GetUserDevicePermission(): Error creating new user"));
+                        $status = SYNC_COMMONSTATUS_USERDISABLEDFORSYNC;
+                    }
+                }
+
+                if (count($paramsNewDevid) > 0) {
+                    $sql = "insert into zpush_preauth_users (username, device_id, authorized, created_at, updated_at) values (:user, :devid, :auth, :created_at, :updated_at)";
+                    $paramsNewDevid[":user"] = $user;
+                    $paramsNewDevid[":devid"] = $devid;
+                    $paramsNewDevid[":created_at"] = $paramsNewDevid[":updated_at"] = $this->getNow();
+
+                    $sth = $this->dbh->prepare($sql);
+                    if (!$sth->execute($paramsNewDevid)) {
+                        ZLog::Write(LOGLEVEL_ERROR, sprintf("SqlStateMachine->GetUserDevicePermission(): Error creating user new device"));
+                        $status = SYNC_COMMONSTATUS_USERDISABLEDFORSYNC;
+                    }
+                }
+            }
+            catch(PDOException $ex) {
+                ZLog::Write(LOGLEVEL_ERROR, sprintf("SqlStateMachine->GetUserDevicePermission(): Error checking permission for username '%s' device '%s': %s", $user, $devid, $ex->getMessage()));
+                $status = SYNC_COMMONSTATUS_USERDISABLEDFORSYNC;
+            }
+
+            $this->clearConnection($this->dbh, $sth, $record);
+        }
+
+        return $status;
+    }
+
 
     /**----------------------------------------------------------------------------------------------------------
      * Private SqlStateMachine stuff
