@@ -79,6 +79,11 @@ class BackendIMAP extends BackendDiff implements ISearchProvider {
 
         if (!function_exists("imap_open"))
             throw new FatalException("BackendIMAP(): php-imap module is not installed", 0, null, LOGLEVEL_FATAL);
+
+        if (defined('IMAP_MBCONVERT') && IMAP_MBCONVERT !== false) {
+            if (!function_exists("mb_convert_encoding"))
+                throw new FatalException("BackendIMAP(): php-mbstring module is not installed", 0, null, LOGLEVEL_FATAL);
+        }
     }
 
     /**----------------------------------------------------------------------------------------------------------
@@ -103,6 +108,11 @@ class BackendIMAP extends BackendDiff implements ISearchProvider {
 
         if (!function_exists("imap_open"))
             throw new FatalException("BackendIMAP(): php-imap module is not installed", 0, null, LOGLEVEL_FATAL);
+
+        if (defined('IMAP_MBCONVERT') && IMAP_MBCONVERT !== false) {
+            if (!function_exists("mb_convert_encoding"))
+                throw new FatalException("BackendIMAP(): php-mbstring module is not installed", 0, null, LOGLEVEL_FATAL);
+        }
 
         /* BEGIN fmbiete's contribution r1527, ZP-319 */
         $this->excludedFolders = array();
@@ -1190,8 +1200,104 @@ class BackendIMAP extends BackendDiff implements ISearchProvider {
                         }
                         break;
                     case SYNC_BODYPREFERENCE_MIME:
-                        //We don't need to create a new MIME mail, we already have one!!
-                        $output->asbody->data = $mail;
+                        if (defined('IMAP_MBCONVERT') && IMAP_MBCONVERT !== false) {
+                            $finalEmail = new Mail_mimePart(isset($message->body) ? $message->body : "", array('headers' => $message->headers));
+                            if (isset($message->parts)) {
+                                foreach ($message->parts as $part) {
+                                    $this->fixCharsetAndAddSubParts($finalEmail, $part);
+                                }
+                            }
+
+                            $mimeHeaders = Array();
+                            $mimeHeaders['headers'] = Array();
+                            $is_mime = false;
+                            foreach ($message->headers as $key => $value) {
+                                switch($key) {
+                                    case 'content-type':
+                                        $new_value = $message->ctype_primary . "/" . $message->ctype_secondary;
+                                        $is_mime = (strcasecmp($message->ctype_primary, 'multipart') == 0);
+
+                                        if (isset($message->ctype_parameters)) {
+                                            foreach ($message->ctype_parameters as $ckey => $cvalue) {
+                                                switch($ckey) {
+                                                    case 'charset':
+                                                        $new_value .= '; charset="UTF-8"';
+                                                        break;
+                                                    case 'boundary':
+                                                        // Do nothing, we are encoding also the headers
+                                                        break;
+                                                    default:
+                                                        $new_value .= '; ' . $ckey . '="' . $cvalue . '"';
+                                                        break;
+                                                }
+                                            }
+                                        }
+
+                                        $mimeHeaders['content_type'] = $new_value;
+                                        break;
+                                    case 'content-transfer-encoding':
+                                        if (strcasecmp($value, "base64") == 0 || strcasecmp($value, "binary") == 0) {
+                                            $mimeHeaders['encoding'] = "base64";
+                                        }
+                                        else {
+                                            $mimeHeaders['encoding'] = "8bit";
+                                        }
+                                        break;
+                                    case 'content-id':
+                                        $mimeHeaders['cid'] = $value;
+                                        break;
+                                    case 'content-location':
+                                        $mimeHeaders['location'] = $value;
+                                        break;
+                                    case 'content-disposition':
+                                        $mimeHeaders['disposition'] = $value;
+                                        break;
+                                    case 'content-description':
+                                        $mimeHeaders['description'] = $value;
+                                        break;
+                                    default:
+                                        if (is_array($value)) {
+                                            foreach($value as $v) {
+                                                $mimeHeaders['headers'][$key] = $v;
+                                            }
+                                        }
+                                        else {
+                                            $mimeHeaders['headers'][$key] = $value;
+                                        }
+                                        break;
+                                }
+                            }
+
+                            $finalEmail = new Mail_mimePart(isset($message->body) ? $message->body : "", $mimeHeaders);
+                            unset($mimeHeaders['headers']);
+                            unset($mimeHeaders);
+
+                            if (isset($message->parts)) {
+                                foreach ($message->parts as $part) {
+                                    $this->fixCharsetAndAddSubParts($finalEmail, $part);
+                                }
+                            }
+
+                            $boundary = '=_' . md5(rand() . microtime());
+                            $finalEmail = $finalEmail->encode($boundary);
+                            $headers = "";
+                            foreach ($finalEmail['headers'] as $key => $value) {
+                                $headers .= "$key: $value\n";
+                            }
+
+                            if ($is_mime) {
+                                $output->asbody->data = "$headers\nThis is a multi-part message in MIME format.\n".$finalEmail['body'];
+                            }
+                            else {
+                                $output->asbody->data = "$headers\n".$finalEmail['body'];
+                            }
+                            unset($headers);
+                            unset($finalEmail);
+                        }
+                        else {
+                            // WARNING: Message text could be showed as broken, if it's not UTF-8.
+                            $output->asbody->data = $mail;
+                        }
                         break;
                     case SYNC_BODYPREFERENCE_RTF:
                         ZLog::Write(LOGLEVEL_DEBUG, "BackendIMAP->GetMessage RTF Format NOT CHECKED");
