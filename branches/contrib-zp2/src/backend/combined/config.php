@@ -74,6 +74,9 @@ class BackendCombinedConfig {
                 'v' => array(
                     'name' => 'BackendVCardDir',
                 ),
+                'c' => array(
+                    'name' => 'BackendCalDAV',
+                ),
                 'l' => array(
                     'name' => 'BackendLDAP',
                 ),
