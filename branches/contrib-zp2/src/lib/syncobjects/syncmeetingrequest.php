@@ -62,6 +62,9 @@ class SyncMeetingRequest extends SyncObject {
     public $busystatus;
     public $timezone;
     public $globalobjid;
+// Begin contribution - Missing MeetingMessageType - liverpoolfcfan
+    public $meetingmessagetype; 
+// End contribution - Missing MeetingMessageType - liverpoolfcfan
 
     function SyncMeetingRequest() {
         $mapping = array (
@@ -127,6 +130,24 @@ class SyncMeetingRequest extends SyncObject {
 
                     SYNC_POOMMAIL_GLOBALOBJID                           => array (  self::STREAMER_VAR      => "globalobjid"),
                 );
+
+// Begin contribution - Missing MeetingMessageType - liverpoolfcfan
+
+        if (Request::GetProtocolVersion() >= 14.0) {
+                    // MeetimgMessageType values
+                    // 0 = A silent update was performed, or the message type is unspecified.
+                    // 1 = Initial meeting request.
+                    // 2 = Full update.
+                    // 3 = Informational update.
+                    // 4 = Outdated. A newer meeting request or meeting update was received after this message.
+                    // 5 = Identifies the delegator's copy of the meeting request.
+                    // 6 = Identifies that the meeting request has been delegated and the meeting request cannot be responded to.
+            $mapping[SYNC_POOMMAIL2_MEETINGMESSAGETYPE]                  = array (  self::STREAMER_VAR      => "meetingmessagetype",
+                                                                                    self::STREAMER_CHECKS   => array(   self::STREAMER_CHECK_REQUIRED   => self::STREAMER_CHECK_SETZERO,
+                                                                                                                        self::STREAMER_CHECK_ONEVALUEOF => array(0,1,2,3,4,5,6) ));
+
+        }
+// End contribution - Missing MeetingMessageType - liverpoolfcfan
 
         parent::SyncObject($mapping);
     }
