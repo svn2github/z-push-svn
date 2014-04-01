@@ -130,12 +130,36 @@ abstract class SyncObject extends Streamer {
             // array of values?
             if (isset($v[self::STREAMER_ARRAY])) {
                 // seek for differences in the arrays
+
+// Begin Contribution - Allow for entries not being set correctly/completely in the mapping - liverpoolfcfan
+// Remove old simple array compare
+/*
                 if (is_array($this->$val) && is_array($odo->$val)) {
                     if (count(array_diff($this->$val, $odo->$val)) + count(array_diff($odo->$val, $this->$val)) > 0) {
                         ZLog::Write(LOGLEVEL_DEBUG, sprintf("SyncObject->equals() items in array '%s' differ", $val));
                         return false;
                     }
                 }
+*/
+// Replace with compare that allows for the same fields not being set in both
+
+                if (!isset($this->$val) && !isset($odo->$val)) {
+                    ZLog::Write(LOGLEVEL_DEBUG, sprintf("SyncObject->equals() array '%s' is NOT SET in either object", $val));
+                    continue;
+                }
+                elseif (is_array($this->$val) && is_array($odo->$val)) {
+                    if (count(array_diff($this->$val, $odo->$val)) + count(array_diff($odo->$val, $this->$val)) > 0) {
+                        ZLog::Write(LOGLEVEL_DEBUG, sprintf("SyncObject->equals() items in array '%s' differ", $val));
+                        return false;
+                    }
+                }
+                elseif (!is_array($this->$val) && !is_array($odo->$val)) {
+                    ZLog::Write(LOGLEVEL_DEBUG, sprintf("SyncObject->equals() array '%s' is NOT AN ARRAY in either object", $val));
+                    continue;
+                }
+
+// End Contribution - Allow for entries not being set correctly/completely in the mapping - liverpoolfcfan
+
                 else {
                     ZLog::Write(LOGLEVEL_DEBUG, sprintf("SyncObject->equals() array '%s' is set in one but not the other object", $val));
                     return false;
