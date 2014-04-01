@@ -85,7 +85,17 @@ interface ISearchProvider {
     */
     public function GetMailboxSearchResults($cpo);
 
+// Begin contribution - DocumentSearch - liverpoolfcfan
     /**
+    * Searches for the documents on the server
+    *
+    * @param ContentParameter $cpo
+    *
+    * @return array
+    */
+    public function GetDocumentLibrarySearchResults($cpo);
+// End contribution - DocumentSearch - liverpoolfcfan
+   /**
     * Terminates a search for a given PID
     *
     * @param int $pid

@@ -121,6 +121,14 @@ class ItemOperations extends RequestProcessor {
                         return false;//SYNC_AIRSYNCBASE_FILEREFERENCE
                 }
 
+// Begin contribution - DocumentSearch - liverpoolfcfan
+                if(self::$decoder->getElementStartTag(SYNC_DOCUMENTLIBRARY_LINKID)) {
+                    $operation['documentlibrarylinkid'] = self::$decoder->getElementContent();
+                    if(!self::$decoder->getElementEndTag())
+                        return false;//SYNC_DOCUMENTLIBRARY_LINKID
+                }
+// End contribution - DocumentSearch - liverpoolfcfan
+
                 if(self::$decoder->getElementStartTag(SYNC_ITEMOPERATIONS_OPTIONS)) {
                     //TODO other options
                     //schema
@@ -331,6 +339,18 @@ class ItemOperations extends RequestProcessor {
                         self::$encoder->content($operation['filereference']);
                         self::$encoder->endTag(); // end SYNC_AIRSYNCBASE_FILEREFERENCE
                     }
+
+// Begin contribution - DocumentSearch - liverpoolfcfan
+                    if (isset($operation['documentlibrarylinkid'])) {
+                        self::$encoder->startTag(SYNC_DOCUMENTLIBRARY_LINKID);
+                        self::$encoder->content($operation['documentlibrarylinkid']);
+                        self::$encoder->endTag(); // end SYNC_DOCUMENTLIBRARY_LINKID
+
+                        self::$topCollector->AnnounceInformation("Get attachment data from backend with document library linkid");
+
+                        $data = self::$backend->GetLibraryDocument($operation['documentlibrarylinkid']);
+                    }
+// End contribution - DocumentSearch - liverpoolfcfan
 
                     if (isset($data)) {
                         self::$topCollector->AnnounceInformation("Streaming data");

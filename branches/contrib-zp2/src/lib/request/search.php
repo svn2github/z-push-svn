@@ -294,9 +294,18 @@ class Search extends RequestProcessor {
                 elseif ($searchname == ISearchProvider::SEARCH_MAILBOX) {
                     $rows = $searchprovider->GetMailboxSearchResults($cpo);
                 }
+// Begin contribution - DocumentSearch - liverpoolfcfan
+                elseif ($searchname == ISearchProvider::SEARCH_DOCUMENTLIBRARY) {
+                    $rows = $searchprovider->GetDocumentLibrarySearchResults($cpo);
+                }
+// End contribution - DocumentSearch - liverpoolfcfan
             }
             catch (StatusException $stex) {
                 $storestatus = $stex->getCode();
+// Begin contribution - DocumentSearch - liverpoolfcfan
+                // Need to return searchtotal even in case of failed search
+                $rows = array('searchtotal' => 0);
+// End contribution - DocumentSearch - liverpoolfcfan
             }
         }
         else {
@@ -426,9 +435,27 @@ class Search extends RequestProcessor {
                             }
                         }
                     }
+// Begin contribution - DocumentSearch - liverpoolfcfan
+                    elseif ($searchname == ISearchProvider::SEARCH_DOCUMENTLIBRARY) {
+                        foreach ($rows as $d) {
+                            self::$encoder->startTag(SYNC_SEARCH_RESULT);
+                                self::$encoder->startTag(SYNC_SEARCH_LONGID);
+                                self::$encoder->content($d->longid);
+                                self::$encoder->endTag();
+                                self::$encoder->startTag(SYNC_SEARCH_PROPERTIES);
+
+                                $d->Encode(self::$encoder);
+                                self::$encoder->endTag();//properties
+                            self::$encoder->endTag();//result
+                        }
+                    }
+// End contribution - DocumentSearch - liverpoolfcfan
                     // it seems that android 4 requires range and searchtotal
                     // or it won't display the search results
-                    if (isset($searchrange)) {
+// Begin contribution - DocumentSearch - liverpoolfcfan
+// SearchRange is only needed if SearchTotal is greater than zero
+                    if (isset($searchtotal) && $searchtotal > 0 && isset($searchrange)) {
+// End contribution - DocumentSearch - liverpoolfcfan
                         self::$encoder->startTag(SYNC_SEARCH_RANGE);
                         self::$encoder->content($searchrange);
                         self::$encoder->endTag();

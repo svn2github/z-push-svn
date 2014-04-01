@@ -114,6 +114,9 @@ include_once('lib/syncobjects/syncresolverecipientsoptions.php');
 include_once('lib/syncobjects/syncresolverecipientsavailability.php');
 include_once('lib/syncobjects/syncresolverecipientscertificates.php');
 include_once('lib/syncobjects/syncresolverecipientspicture.php');
+// Begin contribution - DocumentSearch - liverpoolfcfan
+include_once('lib/syncobjects/syncdocumentlibrarydocument.php');
+// End contribution - DocumentSearch - liverpoolfcfan
 include_once('lib/default/backend.php');
 include_once('lib/default/searchprovider.php');
 include_once('lib/request/request.php');
