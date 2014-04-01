@@ -179,7 +179,9 @@ class Search extends RequestProcessor {
 
                     if(self::$decoder->getElementStartTag(SYNC_SEARCH_VALUE)) {
                         $searchvalue = self::$decoder->getElementContent();
-                        $cpo->SetSearchValueLess($searchvalue);
+// Begin contribution - DocumentSearch - liverpoolfcfan
+                        $cpo->SetSearchValueEqualTo($searchvalue);
+// End contribution - DocumentSearch - liverpoolfcfan
                         if(!self::$decoder->getElementEndTag()) // SYNC_SEARCH_VALUE
                             return false;
                     }
