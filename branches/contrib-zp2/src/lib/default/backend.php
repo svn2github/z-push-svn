@@ -203,6 +203,25 @@ abstract class Backend implements IBackend {
         return $r;
     }
 
+// Begin contribution - Configurable Sort Function - liverpoolfcfan
+    /**
+     * Optional Backend Compare function used for sorting of the differential engine
+     * Uncomment function and implement custom sort method for backends with non-numeric item IDs
+     *
+     * @param array        $a
+     * @param array        $b
+     *
+     * @access public
+     * @return boolean
+     */
+/* <-- Remove this line to uncomment
+    static public function CustomRowCmp($a, $b) {
+        // Example for comparison of character string IDs
+        return strcmp( $b["id"], $a["id"] );
+    }
+Remove this line to uncomment --> */
+// End contribution - Configurable Sort Function - liverpoolfcfan
+
 
     /**----------------------------------------------------------------------------------------------------------
      * Protected methods for BackendStorage

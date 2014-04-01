@@ -137,8 +137,20 @@ class DiffState implements IChanges {
         $changes = array();
 
         // Sort both arrays in the same way by ID
-        usort($this->syncstate, array("DiffState", "RowCmp"));
-        usort($new, array("DiffState", "RowCmp"));
+
+// Begin contribution - Configurable Sort Function - liverpoolfcfan
+
+        // Check if backend provider has CustomRowCmp function - and use it if available
+        $backendRowCmp = @constant('BACKEND_PROVIDER') . "::CustomRowCmp";
+        if (is_callable($backendRowCmp )) {
+            usort($this->syncstate, $backendRowCmp );
+            usort($new, $backendRowCmp );
+        } else {
+            usort($this->syncstate, array("DiffState", "RowCmp"));
+            usort($new, array("DiffState", "RowCmp"));
+        }
+
+// End contribution - Configurable Sort Function - liverpoolfcfan
 
         $inew = 0;
         $iold = 0;
