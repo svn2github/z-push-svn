@@ -110,6 +110,9 @@ include_once('lib/syncobjects/syncsendmailsource.php');
 include_once('lib/syncobjects/syncvalidatecert.php');
 include_once('lib/syncobjects/syncresolverecipients.php');
 include_once('lib/syncobjects/syncresolverecipient.php');
+// Begin Contribution - ResolveMultipleRecipients - liverpoolfcfan
+include_once('lib/syncobjects/syncresolverecipientresponse.php');
+// End Contribution - ResolveMultipleRecipients - liverpoolfcfan
 include_once('lib/syncobjects/syncresolverecipientsoptions.php');
 include_once('lib/syncobjects/syncresolverecipientsavailability.php');
 include_once('lib/syncobjects/syncresolverecipientscertificates.php');

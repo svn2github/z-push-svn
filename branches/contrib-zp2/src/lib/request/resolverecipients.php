@@ -68,34 +68,71 @@ class ResolveRecipients extends RequestProcessor {
         self::$encoder->startWBXML();
         self::$encoder->startTag(SYNC_RESOLVERECIPIENTS_RESOLVERECIPIENTS);
 
-            self::$encoder->startTag(SYNC_RESOLVERECIPIENTS_STATUS);
-            self::$encoder->content($resolveRecipients->status);
-            self::$encoder->endTag(); // SYNC_RESOLVERECIPIENTS_STATUS
+        self::$encoder->startTag(SYNC_RESOLVERECIPIENTS_STATUS);
+        self::$encoder->content($resolveRecipients->status);
+        self::$encoder->endTag(); // SYNC_RESOLVERECIPIENTS_STATUS
+// Start Contribution - ResolveMultipleRecipients - liverpoolfcfan
+// Remove old code block that only handles a single recipient
+//
+//            foreach ($resolveRecipients->to as $i => $to) {
+//                self::$encoder->startTag(SYNC_RESOLVERECIPIENTS_RESPONSE);
+//                    self::$encoder->startTag(SYNC_RESOLVERECIPIENTS_TO);
+//                    self::$encoder->content($to);
+//                    self::$encoder->endTag(); // SYNC_RESOLVERECIPIENTS_TO
+//
+//                    self::$encoder->startTag(SYNC_RESOLVERECIPIENTS_STATUS);
+//                    self::$encoder->content($resolveRecipients->status);
+//                    self::$encoder->endTag();
+//
+//                    // do only if recipient is resolved
+//                    if ($resolveRecipients->status != SYNC_RESOLVERECIPSSTATUS_RESPONSE_UNRESOLVEDRECIP) {
+//                        self::$encoder->startTag(SYNC_RESOLVERECIPIENTS_RECIPIENTCOUNT);
+//                        self::$encoder->content(count($resolveRecipients->recipient));
+//                        self::$encoder->endTag(); // SYNC_RESOLVERECIPIENTS_RECIPIENTCOUNT
+//
+//                        self::$encoder->startTag(SYNC_RESOLVERECIPIENTS_RECIPIENT);
+//                        $resolveRecipients->recipient[$i]->Encode(self::$encoder);
+//                        self::$encoder->endTag(); // SYNC_RESOLVERECIPIENTS_RECIPIENT
+//                    }
+//
+//                self::$encoder->endTag(); // SYNC_RESOLVERECIPIENTS_RESPONSE
+//            }
+// End remove old code block
+// Replace with code block that correctly handles all recipients in a single backend call
 
+        if ($resolveRecipients->status == SYNC_COMMONSTATUS_SUCCESS) {
 
-            foreach ($resolveRecipients->to as $i => $to) {
+            foreach ($resolveRecipients->recipientresponse as $i => $recipientresponse) {
                 self::$encoder->startTag(SYNC_RESOLVERECIPIENTS_RESPONSE);
-                    self::$encoder->startTag(SYNC_RESOLVERECIPIENTS_TO);
-                    self::$encoder->content($to);
-                    self::$encoder->endTag(); // SYNC_RESOLVERECIPIENTS_TO
 
-                    self::$encoder->startTag(SYNC_RESOLVERECIPIENTS_STATUS);
-                    self::$encoder->content($resolveRecipients->status);
+                self::$encoder->startTag(SYNC_RESOLVERECIPIENTS_TO);
+                self::$encoder->content($recipientresponse->to);
+                self::$encoder->endTag(); // SYNC_RESOLVERECIPIENTS_TO
+
+                self::$encoder->startTag(SYNC_RESOLVERECIPIENTS_STATUS);
+                self::$encoder->content($recipientresponse->status);
+                self::$encoder->endTag();
+
+                // do only if recipient is resolved
+                if ($resolveRecipients->status != SYNC_RESOLVERECIPSSTATUS_RESPONSE_UNRESOLVEDRECIP) {
+                    self::$encoder->startTag(SYNC_RESOLVERECIPIENTS_RECIPIENTCOUNT);
+                    self::$encoder->content($recipientresponse->recipientcount);
                     self::$encoder->endTag();
 
-                    // do only if recipient is resolved
-                    if ($resolveRecipients->status != SYNC_RESOLVERECIPSSTATUS_RESPONSE_UNRESOLVEDRECIP) {
-                        self::$encoder->startTag(SYNC_RESOLVERECIPIENTS_RECIPIENTCOUNT);
-                        self::$encoder->content(count($resolveRecipients->recipient));
-                        self::$encoder->endTag(); // SYNC_RESOLVERECIPIENTS_RECIPIENTCOUNT
+                    foreach ($recipientresponse->recipient as $j => $recipient) {
 
                         self::$encoder->startTag(SYNC_RESOLVERECIPIENTS_RECIPIENT);
-                        $resolveRecipients->recipient[$i]->Encode(self::$encoder);
+                        $recipient->Encode(self::$encoder);
                         self::$encoder->endTag(); // SYNC_RESOLVERECIPIENTS_RECIPIENT
                     }
 
+                }
+
                 self::$encoder->endTag(); // SYNC_RESOLVERECIPIENTS_RESPONSE
             }
+        }
+// End replacement block
+// End Contribution - ResolveMultipleRecipients - liverpoolfcfan
 
         self::$encoder->endTag(); // SYNC_RESOLVERECIPIENTS_RESOLVERECIPIENTS
         return true;

@@ -898,6 +898,15 @@ class BackendZarafa implements IBackend, ISearchProvider {
      * @return SyncObject       $resolveRecipients
      */
     public function ResolveRecipients($resolveRecipients) {
+
+// Start Contribution - ResolveMultipleRecipients - liverpoolfcfan
+
+    // TO DO Fix Zarafa implementation below to use the updated structure, and implement the availability and certificate lookups
+
+	return false; // to prevent calls to this backend function crashing with the rest of the code checked-in for this fix
+
+// End Contribution - ResolveMultipleRecipients - liverpoolfcfan
+
         if ($resolveRecipients instanceof SyncResolveRecipients) {
             $resolveRecipients->status = SYNC_RESOLVERECIPSSTATUS_SUCCESS;
             $resolveRecipients->recipient = array();
