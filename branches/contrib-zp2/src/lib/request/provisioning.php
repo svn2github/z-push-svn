@@ -93,32 +93,48 @@ class Provisioning extends RequestProcessor {
             if(!self::$decoder->getElementStartTag(SYNC_PROVISION_POLICY))
                 return false;
 
-            if(!self::$decoder->getElementStartTag(SYNC_PROVISION_POLICYTYPE))
-                return false;
-
-            $policytype = self::$decoder->getElementContent();
-            if ($policytype != 'MS-WAP-Provisioning-XML' && $policytype != 'MS-EAS-Provisioning-WBXML') {
-                $status = SYNC_PROVISION_STATUS_SERVERERROR;
-            }
-            if(!self::$decoder->getElementEndTag()) //policytype
-                return false;
-
-            if (self::$decoder->getElementStartTag(SYNC_PROVISION_POLICYKEY)) {
-                $devpolicykey = self::$decoder->getElementContent();
-
-                if(!self::$decoder->getElementEndTag())
-                    return false;
-
-                if(!self::$decoder->getElementStartTag(SYNC_PROVISION_STATUS))
-                    return false;
+// Begin Contribution - Execute Remote Wipe - liverpoolfcfan
+            if(self::$decoder->getElementStartTag(SYNC_PROVISION_STATUS)) {
+                ZLog::Write(LOGLEVEL_INFO, "Got Status within Policy Tags - Looks like a RemoteWipe Confirmation");
 
                 $instatus = self::$decoder->getElementContent();
 
                 if(!self::$decoder->getElementEndTag())
                     return false;
-
-                $phase2 = false;
             }
+            else {         
+// End Contribution - Execute Remote Wipe - liverpoolfcfan
+
+                if(!self::$decoder->getElementStartTag(SYNC_PROVISION_POLICYTYPE))
+                    return false;
+
+                $policytype = self::$decoder->getElementContent();
+                if ($policytype != 'MS-WAP-Provisioning-XML' && $policytype != 'MS-EAS-Provisioning-WBXML') {
+                    $status = SYNC_PROVISION_STATUS_SERVERERROR;
+                }
+                if(!self::$decoder->getElementEndTag()) //policytype
+                    return false;
+
+                if (self::$decoder->getElementStartTag(SYNC_PROVISION_POLICYKEY)) {
+                    $devpolicykey = self::$decoder->getElementContent();
+
+                    if(!self::$decoder->getElementEndTag())
+                        return false;
+
+                    if(!self::$decoder->getElementStartTag(SYNC_PROVISION_STATUS))
+                        return false;
+
+                    $instatus = self::$decoder->getElementContent();
+
+                    if(!self::$decoder->getElementEndTag())
+                        return false;
+
+                    $phase2 = false;
+                }
+
+// Begin Contribution - Execute Remote Wipe - liverpoolfcfan
+            }
+// End Contribution - Execute Remote Wipe - liverpoolfcfan
 
             if(!self::$decoder->getElementEndTag()) //policy
                 return false;
@@ -165,7 +181,22 @@ class Provisioning extends RequestProcessor {
         // END ADDED dw2412 Android provisioning fix
 
         self::$encoder->startTag(SYNC_PROVISION_PROVISION);
-        {
+
+// Begin Contribution - Execute Remote Wipe - liverpoolfcfan
+// Move block up and add setting wiped status, and topCollector announcement
+// as nothing else should be returned for a Wipe Confirmation
+        //wipe data if a higher RWSTATUS is requested
+        if ($rwstatus > SYNC_PROVISION_RWSTATUS_OK && $policystatus === SYNC_PROVISION_POLICYSTATUS_SUCCESS) {
+            $status = SYNC_COMMONSTATUS_SUCCESS;
+            self::$encoder->startTag(SYNC_PROVISION_STATUS);
+                self::$encoder->content($status);
+            self::$encoder->endTag();
+            self::$encoder->startTag(SYNC_PROVISION_REMOTEWIPE, false, true);
+            self::$deviceManager->SetProvisioningWipeStatus(($rwstatusWiped)?SYNC_PROVISION_RWSTATUS_WIPED:SYNC_PROVISION_RWSTATUS_REQUESTED);
+            self::$topCollector->AnnounceInformation(sprintf("Remote wipe %s", ($rwstatusWiped)?"executed":"requested"), true);
+         
+        } else {
+// End Contribution - Execute Remote Wipe - liverpoolfcfan
             self::$encoder->startTag(SYNC_PROVISION_STATUS);
                 self::$encoder->content($status);
             self::$encoder->endTag();
@@ -215,12 +246,15 @@ class Provisioning extends RequestProcessor {
             self::$encoder->endTag(); //policies
         }
 
-        //wipe data if a higher RWSTATUS is requested
-        if ($rwstatus > SYNC_PROVISION_RWSTATUS_OK && $policystatus === SYNC_PROVISION_POLICYSTATUS_SUCCESS) {
-            self::$encoder->startTag(SYNC_PROVISION_REMOTEWIPE, false, true);
-            self::$deviceManager->SetProvisioningWipeStatus(($rwstatusWiped)?SYNC_PROVISION_RWSTATUS_WIPED:SYNC_PROVISION_RWSTATUS_REQUESTED);
-            self::$topCollector->AnnounceInformation(sprintf("Remote wipe %s", ($rwstatusWiped)?"executed":"requested"), true);
-        }
+// Begin Contribution - Execute Remote Wipe - liverpoolfcfan
+// Commenting out this block and moving it up higher as it needs to be the only output for a wipe
+//        //wipe data if a higher RWSTATUS is requested
+//        if ($rwstatus > SYNC_PROVISION_RWSTATUS_OK && $policystatus === SYNC_PROVISION_POLICYSTATUS_SUCCESS) {
+//            self::$encoder->startTag(SYNC_PROVISION_REMOTEWIPE, false, true);
+//            self::$deviceManager->SetProvisioningWipeStatus(($rwstatusWiped)?SYNC_PROVISION_RWSTATUS_WIPED:SYNC_PROVISION_RWSTATUS_REQUESTED);
+//            self::$topCollector->AnnounceInformation(sprintf("Remote wipe %s", ($rwstatusWiped)?"executed":"requested"), true);
+//        }
+// End Contribution - Execute Remote Wipe - liverpoolfcfan
 
         self::$encoder->endTag();//provision
 
