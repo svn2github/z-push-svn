@@ -552,7 +552,12 @@ class FileStateMachine implements IStateMachine {
      * @throws StateInvalidException
      */
     private function getFullFilePath($devid, $type, $key = false, $counter = false, $doNotCreateDirs = false) {
-        $testkey = $devid . (($key !== false)? "-". $key : "") . (($type !== "")? "-". $type : "");
+// Begin Contribution - Separate BS Storage Per User - liverpoolfcfan
+// To allow for situations where a user wants to add multiple accounts to the same device
+// the Backend Storage file name needs to have a unique identifier in it for the user
+        $user = preg_replace('/[^a-z0-9]/', '-', Request::GetAuthUser());
+        $testkey = $devid . (($key !== false)? "-". $key : "") . (($type !== "")? "-". $type : "") . (($type == IStateMachine::BACKENDSTORAGE)? "-". $user : "");
+// End Contribution - Separate BS Storage Per User - liverpoolfcfan
         if (preg_match('/^[a-zA-Z0-9-]+$/', $testkey, $matches) || ($type == "" && $key === false))
             $internkey = $testkey . (($counter && is_int($counter))?"-".$counter:"");
         else
