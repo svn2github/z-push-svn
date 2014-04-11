@@ -126,10 +126,18 @@ class FileStateMachine implements IStateMachine {
         // Read current sync state
         $filename = $this->getFullFilePath($devid, $type, $key, $counter);
 
-        ZLog::Write(LOGLEVEL_DEBUG, sprintf("FileStateMachine->GetState() on file: '%s'", $filename));
+// Begin Contribution - Consistent reporting of State Reads/Writes - liverpoolfcfan
+//        ZLog::Write(LOGLEVEL_DEBUG, sprintf("FileStateMachine->GetState() on file: '%s'", $filename));
+// End Contribution - Consistent reporting of State Reads/Writes - liverpoolfcfan
 
         if(file_exists($filename)) {
-            return unserialize(file_get_contents($filename));
+// Begin Contribution - Consistent reporting of State Reads/Writes - liverpoolfcfan
+//            return unserialize(file_get_contents($filename));
+            $contents = file_get_contents($filename);
+            $bytes = strlen($contents);
+            ZLog::Write(LOGLEVEL_DEBUG, sprintf("FileStateMachine->GetState() read '%d' bytes from file: '%s'", $bytes, $filename ));
+            return unserialize($contents);
+// End Contribution - Consistent reporting of State Reads/Writes - liverpoolfcfan
         }
         // throw an exception on all other states, but not FAILSAVE as it's most of the times not there by default
         else if ($type !== IStateMachine::FAILSAVE)
