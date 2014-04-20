@@ -47,7 +47,7 @@
 require_once("backend/caldav/config.php");
 
 include_once('lib/default/diffbackend/diffbackend.php');
-include_once('include/caldav-client-v2.php');
+include_once('include/z_caldav.php');
 include_once('include/z_RTF.php');
 include_once('include/iCalendar.php');
 
@@ -56,6 +56,16 @@ class BackendCalDAV extends BackendDiff {
     private $_caldav_path;
     private $_collection = array();
     private $_username;
+
+    /**
+     * Constructor
+     *
+     */
+    public function BackendCalDAV() {
+        if (!function_exists("curl_init")) {
+            throw new FatalException("BackendCalDAV(): php-curl is not found", 0, null, LOGLEVEL_FATAL);
+        }
+    }
 
     /**
      * Login to the CalDAV backend
