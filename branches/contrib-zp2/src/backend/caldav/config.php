@@ -56,5 +56,10 @@ define('CALDAV_PATH', '/caldav.php/%u/');
 // Personal CalDAV folder (calendar folder/principal)
 define('CALDAV_PERSONAL', 'home');
 
+// If the CalDAV server supports the sync-collection operation
+// DAViCal and SOGo support it
+// Setting this to false will work with most servers, but it will be slower
+define('CALDAV_SUPPORTS_SYNC', false);
+
 
 ?>
