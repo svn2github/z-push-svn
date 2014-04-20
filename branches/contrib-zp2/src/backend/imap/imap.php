@@ -204,7 +204,7 @@ class BackendIMAP extends BackendDiff implements ISearchProvider {
                 throw new StatusException(sprintf("BackendIMAP->SendMail(): Could not get imapid from source folderid '%'", $sm->source->folderid), SYNC_COMMONSTATUS_ITEMNOTFOUND);
             }
             else {
-                $this->imap_reopenFolder($parent);
+                $this->imap_reopen_folder($parent);
                 $sourceMail = @imap_fetchheader($this->mbox, $sm->source->itemid, FT_UID) . @imap_body($this->mbox, $sm->source->itemid, FT_PEEK | FT_UID);
                 $mobj = new Mail_mimeDecode($sourceMail);
                 $sourceMessage = $mobj->decode(array('decode_headers' => false, 'decode_bodies' => true, 'include_bodies' => true, 'charset' => 'utf-8'));
@@ -375,9 +375,9 @@ class BackendIMAP extends BackendDiff implements ISearchProvider {
             }
             else if (IMAP_SENTFOLDER) {
                 // try to open the sentfolder
-                if (!$this->imap_reopenFolder(IMAP_SENTFOLDER, false)) {
+                if (!$this->imap_reopen_folder(IMAP_SENTFOLDER, false)) {
                     // if we cannot open it, it mustn't exist, we try to create it.
-                    $this->imap_createFolder($this->server . IMAP_SENTFOLDER);
+                    $this->imap_create_folder($this->server . IMAP_SENTFOLDER);
                 }
                 $saved = $this->addSentMessage(IMAP_SENTFOLDER, $headers, $finalBody);
                 ZLog::Write(LOGLEVEL_DEBUG, sprintf("BackendIMAP->SendMail(): Outgoing mail saved in configured 'Sent' folder '%s'", IMAP_SENTFOLDER));
@@ -701,7 +701,7 @@ class BackendIMAP extends BackendDiff implements ISearchProvider {
         // convert back to work on an imap-id
         $folderImapid = $this->getImapIdFromFolderId($folderid);
 
-        $this->imap_reopenFolder($folderImapid);
+        $this->imap_reopen_folder($folderImapid);
         $mail = @imap_fetchheader($this->mbox, $id, FT_UID) . @imap_body($this->mbox, $id, FT_PEEK | FT_UID);
 
         if (empty($mail)) {
@@ -811,7 +811,7 @@ class BackendIMAP extends BackendDiff implements ISearchProvider {
 
         while($stopat > time() && empty($notifications)) {
             foreach ($this->sinkfolders as $i => $imapid) {
-                $this->imap_reopenFolder($imapid);
+                $this->imap_reopen_folder($imapid);
 
                 // courier-imap only cleares the status cache after checking
                 @imap_check($this->mbox);
@@ -1022,7 +1022,7 @@ class BackendIMAP extends BackendDiff implements ISearchProvider {
         ZLog::Write(LOGLEVEL_INFO, sprintf("BackendIMAP->ChangeFolder('%s','%s','%s','%s')", $folderid, $oldid, $displayname, $type));
 
         // go to parent mailbox
-        $this->imap_reopenFolder($folderid);
+        $this->imap_reopen_folder($folderid);
 
         // build name for new mailboxBackendMaildir
         $displayname = Utils::Utf7_iconv_encode(Utils::Utf8_to_utf7($displayname));
@@ -1080,7 +1080,7 @@ class BackendIMAP extends BackendDiff implements ISearchProvider {
             throw new StatusException("Folderid not found in cache", SYNC_STATUS_FOLDERHIERARCHYCHANGED);
 
         $messages = array();
-        $this->imap_reopenFolder($folderid, true);
+        $this->imap_reopen_folder($folderid, true);
 
         $sequence = "1:*";
         if ($cutoffdate > 0) {
@@ -1161,7 +1161,7 @@ class BackendIMAP extends BackendDiff implements ISearchProvider {
         $stat = $this->StatMessage($folderid, $id);
 
         if ($stat) {
-            $this->imap_reopenFolder($folderImapid);
+            $this->imap_reopen_folder($folderImapid);
             $mail = @imap_fetchheader($this->mbox, $id, FT_UID) . @imap_body($this->mbox, $id, FT_PEEK | FT_UID);
 
             if (empty($mail)) {
@@ -1552,7 +1552,7 @@ class BackendIMAP extends BackendDiff implements ISearchProvider {
         ZLog::Write(LOGLEVEL_DEBUG, sprintf("BackendIMAP->StatMessage('%s','%s')", $folderid,  $id));
         $folderImapid = $this->getImapIdFromFolderId($folderid);
 
-        $this->imap_reopenFolder($folderImapid);
+        $this->imap_reopen_folder($folderImapid);
         $overview = @imap_fetch_overview( $this->mbox , $id , FT_UID);
 
         if (!$overview) {
@@ -1617,8 +1617,7 @@ class BackendIMAP extends BackendDiff implements ISearchProvider {
             ZLog::Write(LOGLEVEL_DEBUG, sprintf("BackendIMAP->ChangeMessage('Setting flag')"));
 
             $folderImapid = $this->getImapIdFromFolderId($folderid);
-
-            $this->imap_reopenFolder($folderImapid);
+            $this->imap_reopen_folder($folderImapid);
 
             if (isset($message->flag->flagstatus) && $message->flag->flagstatus == 2) {
                 ZLog::Write(LOGLEVEL_DEBUG, "Set On FollowUp -> IMAP Flagged");
@@ -1655,7 +1654,9 @@ class BackendIMAP extends BackendDiff implements ISearchProvider {
      */
     public function SetReadFlag($folderid, $id, $flags, $contentParameters) {
         ZLog::Write(LOGLEVEL_DEBUG, sprintf("BackendIMAP->SetReadFlag('%s','%s','%s')", $folderid, $id, $flags));
+
         $folderImapid = $this->getImapIdFromFolderId($folderid);
+        $this->imap_reopen_folder($folderImapid);
 
         // TODO SyncInterval check + ContentParameters
         // see https://jira.zarafa.com/browse/ZP-258 for details
@@ -1663,7 +1664,6 @@ class BackendIMAP extends BackendDiff implements ISearchProvider {
         // to determine the cutoffdate use Utils::GetCutOffDate($contentparameters->GetFilterType());
         // if the message is not in the interval an StatusException with code SYNC_STATUS_OBJECTNOTFOUND should be thrown
 
-        $this->imap_reopenFolder($folderImapid);
 
         if ($flags == 0) {
             // set as "Unseen" (unread)
@@ -1690,9 +1690,9 @@ class BackendIMAP extends BackendDiff implements ISearchProvider {
      */
     public function SetStarFlag($folderid, $id, $flags, $contentParameters) {
         ZLog::Write(LOGLEVEL_DEBUG, sprintf("BackendIMAP->SetStarFlag('%s','%s','%s')", $folderid, $id, $flags));
-        $folderImapid = $this->getImapIdFromFolderId($folderid);
 
-        $this->imap_reopenFolder($folderImapid);
+        $folderImapid = $this->getImapIdFromFolderId($folderid);
+        $this->imap_reopen_folder($folderImapid);
 
         if ($flags == 0) {
             // set as "UnFlagged" (unstarred)
@@ -1718,7 +1718,9 @@ class BackendIMAP extends BackendDiff implements ISearchProvider {
      */
     public function DeleteMessage($folderid, $id, $contentParameters) {
         ZLog::Write(LOGLEVEL_DEBUG, sprintf("BackendIMAP->DeleteMessage('%s','%s')", $folderid, $id));
+
         $folderImapid = $this->getImapIdFromFolderId($folderid);
+        $this->imap_reopen_folder($folderImapid);
 
         // TODO SyncInterval check + ContentParameters
         // see https://jira.zarafa.com/browse/ZP-258 for details
@@ -1726,7 +1728,6 @@ class BackendIMAP extends BackendDiff implements ISearchProvider {
         // to determine the cutoffdate use Utils::GetCutOffDate($contentparameters->GetFilterType());
         // if the message is not in the interval an StatusException with code SYNC_STATUS_OBJECTNOTFOUND should be thrown
 
-        $this->imap_reopenFolder($folderImapid);
         $s1 = @imap_delete ($this->mbox, $id, FT_UID);
         $s11 = @imap_setflag_full($this->mbox, $id, "\\Deleted", FT_UID);
         $s2 = @imap_expunge($this->mbox);
@@ -1763,7 +1764,7 @@ class BackendIMAP extends BackendDiff implements ISearchProvider {
             throw new StatusException(sprintf("BackendIMAP->MoveMessage('%s','%s','%s'): Error, destination folder is source folder. Canceling the move.", $folderid, $id, $newfolderid), SYNC_MOVEITEMSSTATUS_SAMESOURCEANDDEST);
         }
 
-        $this->imap_reopenFolder($folderImapid);
+        $this->imap_reopen_folder($folderImapid);
 
         // TODO this should throw a StatusExceptions on errors like SYNC_MOVEITEMSSTATUS_SAMESOURCEANDDEST,SYNC_MOVEITEMSSTATUS_INVALIDSOURCEID,SYNC_MOVEITEMSSTATUS_CANNOTMOVE
 
@@ -1794,7 +1795,7 @@ class BackendIMAP extends BackendDiff implements ISearchProvider {
             $s2 = imap_expunge($this->mbox);
 
             // open new folder
-            $stat = $this->imap_reopenFolder($newfolderImapid);
+            $stat = $this->imap_reopen_folder($newfolderImapid);
             if (! $s1)
                 throw new StatusException(sprintf("BackendIMAP->MoveMessage('%s','%s','%s'): Error, opening the destination folder: %s", $folderid, $id, $newfolderid, imap_last_error()), SYNC_MOVEITEMSSTATUS_CANNOTMOVE);
 
@@ -2197,10 +2198,10 @@ class BackendIMAP extends BackendDiff implements ISearchProvider {
      * @access protected
      * @return boolean      if folder is opened
      */
-    protected function imap_reopenFolder($folderid, $force = false) {
+    protected function imap_reopen_folder($folderid, $force = false) {
         // if the stream is not alive, we open it again
         if (!@imap_ping($this->mbox)) {
-            $this->mbox = @imap_open($this->server , $this->username, $this->password, OP_HALFOPEN);
+            $this->mbox = @imap_open($this->server, $this->username, $this->password, OP_HALFOPEN);
             $this->mboxFolder = "";
         }
 
@@ -2209,7 +2210,7 @@ class BackendIMAP extends BackendDiff implements ISearchProvider {
             $s = @imap_reopen($this->mbox, $this->server . $folderid);
             // TODO throw status exception
             if (!$s) {
-                ZLog::Write(LOGLEVEL_WARN, sprintf("BackendIMAP->imap_reopenFolder('%s'): failed to change folder: %s",$folderid, implode(", ", imap_errors())));
+                ZLog::Write(LOGLEVEL_WARN, sprintf("BackendIMAP->imap_reopen_folder('%s'): failed to change folder: %s", $folderid, implode(", ", imap_errors())));
                 return false;
             }
             $this->mboxFolder = $folderid;
@@ -2227,15 +2228,15 @@ class BackendIMAP extends BackendDiff implements ISearchProvider {
      * @access private
      * @return boolean      success
      */
-    private function imap_createFolder($foldername) {
+    private function imap_create_folder($foldername) {
         $name = Utils::Utf7_iconv_encode(Utils::Utf8_to_utf7($foldername));
 
         $res = @imap_createmailbox($this->mbox, $name);
         if ($res) {
-            ZLog::Write(LOGLEVEL_DEBUG, sprintf("BackendIMAP->imap_createFolder('%s'): new folder created", $foldername));
+            ZLog::Write(LOGLEVEL_DEBUG, sprintf("BackendIMAP->imap_create_folder('%s'): new folder created", $foldername));
         }
         else {
-            ZLog::Write(LOGLEVEL_WARN, sprintf("BackendIMAP->imap_createFolder('%s'): failed to create folder: %s", $foldername, implode(", ", imap_errors())));
+            ZLog::Write(LOGLEVEL_WARN, sprintf("BackendIMAP->imap_create_folder('%s'): failed to create folder: %s", $foldername, implode(", ", imap_errors())));
         }
 
         return $res;
